@@ -1,29 +1,20 @@
--- DU-CONTAINER_MONITOR v2.1 by Virtuaburn [ODY]/[M3NTiS]
+-- DU-CONTAINER_MONITOR v2.3 by Virtuaburn [ODY]/[M3NTiS]
 -- Original script by carnopereira v1.9 - last commit
--- NOTE this script will monitor Basic and Advanced Optomized containers with full talents applied (future update will incorporate all containers and optional talent setting)
 -- Any questions please contact Virtualburn on discord : https://discord.gg/d5M7GeMuSJ
 -----------------
--- USE : Code needs to be placed on a Programming board : Connect CORE > SCREEN (SCREEN_A & SCREEN_B) > DATABANK
--- USE : Add a relay and connect to the PB and Screens > connect detector to relay and this will turn on screens only when required
------------------
--- Container/Hub naming examples
--- CH_10XL_BAUXITE → count 10, size XL → uses ContainerXLCapacity (Named container hub connected to 10 Basic XL containers holding Bauxite)
--- C_1XXLa_IRON → count 1, size XXLa → uses ContainerXXLaCapacity (Named container XXL Advanced Optimized holding Iron)
--- C_XLu_COAL → count 1 (default), size XLu → uses ContainerXLuCapacity (Named container XL Uncommon holding Coal)
+-- USE : Programming board with CORE > SCREEN_A (+ optional SCREEN_B) > DATABANK
 -----------------
 
 -----------------
 -- SYSTEM VARS --
 -----------------
-local version = 2.2
+local version = 2.3
+
 ---------------
 -- USER VARS --
 ---------------
-
--- How many 5% mass-reduction talents do you have? 0..5
--- e.g. 5 = 25% reduction (factor 0.75)
+-- 5% mass-reduction talents: 0..5  (5 => 25% less mass in-game)
 local ItemMassReductionTalents = 5 --export
--- Returns the in-game mass multiplier after talents (1.00 .. 0.75)
 local function getItemMassReductionFactor()
     local t = math.floor(tonumber(ItemMassReductionTalents) or 0)
     if t < 0 then t = 0 elseif t > 5 then t = 5 end
@@ -33,23 +24,21 @@ end
 -------------------------------
 --  CAPACITY TALENTS & TIERS --
 -------------------------------
-
--- How many 10% capacity talents? 0..5  (5 => +50%)
+-- +10% capacity talents: 0..5  (5 => +50%)
 local ContainerCapacityTalents = 5 --export
 
--- Tier step increase in percent. In your setup, each step is +30%.
--- 'c' (basic) = 0 steps, 'u' = 1 step, 'a' = 2 steps, 'r' = 3 steps.
+-- Tier step increase in percent (e.g. 30% per step). 
+-- 'c' (basic)=0, 'u'=1, 'a'=2, 'r'=3, **'e'=4 (Exotic)**
 local TierStepPercent = 30 --export
 
 -- Base capacities in L (NO talents, BASIC tier).
-
 local BaseContainerCapacityL = {
-  XS  = 1000,     -- confirmed
-  S   = 8000,    -- confirmed
-  M   = 64000,    -- confirmed
-  L   = 128000,   -- confirmed
-  XL  = 256000,   -- confirmed
-  XXL = 512000,   -- confirmed
+  XS  = 1000,
+  S   = 8000,
+  M   = 64000,
+  L   = 128000,
+  XL  = 256000,
+  XXL = 512000,
 }
 
 -- +10% per talent level (0..5) -> 1.00 .. 1.50
@@ -65,16 +54,17 @@ local function getTierStepMultiplier()
   return 1.0 + (p / 100.0)
 end
 
--- Map tier char -> number of steps: c=0, u=1, a=2, r=3
+-- Map tier char -> number of steps: c=0, u=1, a=2, r=3, **e=4**
 local function getTierSteps(tierChar)
   local t = (tostring(tierChar or "c")):lower()
   if t == "u" then return 1
   elseif t == "a" then return 2
   elseif t == "r" then return 3
+  elseif t == "e" then return 4
   else return 0 end
 end
 
--- Split "XXLa" / "XLu" / "L" -> base="XXL"/"XL"/"L", tier="a"/"u"/"c"
+-- Split "XXLa"/"XLu"/"Le"/"L" -> base="XXL"/"XL"/"L", tier="a"/"u"/"e"/"c"
 local function splitSizeTier(sizeKey)
   local up = tostring(sizeKey or "L"):upper()
   local base = up:match("XXL") or up:match("XL") or up:match("XS")
@@ -82,7 +72,7 @@ local function splitSizeTier(sizeKey)
             or (up:match("^M$") and "M")
             or (up:match("^S$") and "S")
             or "L"
-  local tier = (up:match("[UAR]$") or "C"):lower()
+  local tier = (up:match("[UARE]$") or "C"):lower()  -- accept Exotic 'E'
   return base, tier
 end
 
@@ -91,97 +81,37 @@ local Percentage_GREEN = 50 --export
 local UseContainerHubs = true --export
 local UseDoors = false --export
 local DoorUsers = {'user1', 'user2', 'user3'}
--- username array like {'user1', 'user2', 'CaseSensitive'}
 local showHudWidget = false --export
 
 -----------------
 -- USER CONFIG --
 -----------------
--- LIST OF ORE/PURES:
--- "HEMATITE","IRON","BAUXITE","ALUMINIUM","COAL","CARBON","QUARTZ","SILICON"
--- "LIMESTONE","CALCIUM","MALACHITE","COPPER","NATRON","SODIUM","CHROMITE","CHROMIUM","ACANTHITE"
--- "SILVER","PYRITE","SULFUR","PETALITE","LITHIUM","GARNIERITE","NICKEL","GOLDNUGGETS","GOLD"
--- "CRYOLITE","FLUORINE","COBALTITE","COBALT","KOLBECKITE","SCANDIUM","RHODONITE","MANGANESE"
--- "COLUMBITE","NIOBIUM","VANADINITE","VANADIUM","ILMENITE","TITANIUM"
--- EXTRA MATERIALS TO USE: "OXYGEN", "HYDROGEN", "WARPCELL"
--- On this next arrays you will place witch order you like
--- Read always left to right, then next line.
--- YOU CAN SET "EMPTY" if you need a blank space
+local SCREENA = {"HEMATITE","IRON","BAUXITE","ALUMINIUM","COAL","CARBON","QUARTZ","SILICON","LIMESTONE","CALCIUM",
+                 "MALACHITE","COPPER","NATRON","SODIUM","CHROMITE","CHROMIUM","ACANTHITE","SILVER","PYRITE","SULFUR"}
 
-local SCREENA = {"HEMATITE", "IRON", "BAUXITE", "ALUMINIUM", "COAL", "CARBON", "QUARTZ", "SILICON", "LIMESTONE", "CALCIUM",
-    "MALACHITE", "COPPER", "NATRON", "SODIUM", "CHROMITE", "CHROMIUM", "ACANTHITE", "SILVER", "PYRITE", "SULFUR"}
-
-local SCREENB = {"PETALITE", "LITHIUM", "GARNIERITE", "NICKEL", "GOLDNUGGETS", "GOLD", "CRYOLITE", "FLUORINE",
-    "COBALTITE", "COBALT", "KOLBECKITE", "SCANDIUM", "RHODONITE", "MANGANESE", "COLUMBITE", "NIOBIUM", "VANADINITE",
-    "VANADIUM", "ILMENITE", "TITANIUM"}
+local SCREENB = {"PETALITE","LITHIUM","GARNIERITE","NICKEL","GOLDNUGGETS","GOLD","CRYOLITE","FLUORINE",
+                 "COBALTITE","COBALT","KOLBECKITE","SCANDIUM","RHODONITE","MANGANESE","COLUMBITE","NIOBIUM",
+                 "VANADINITE","VANADIUM","ILMENITE","TITANIUM"}
 
 -------------------------
 -- AUXILIARY FUNCTIONS --
 -------------------------
-function roundint(x)
-    return x >= 0 and math.floor(x + 0.5) or math.ceil(x - 0.5)
-end
+function roundint(x) return x >= 0 and math.floor(x + 0.5) or math.ceil(x - 0.5) end
 
 function round(value)
-    local x = math.abs(value)
-    if math.type(x) == "float" then
-        return utils.round(x, 0.1)
-    else
-        return x
-    end
+  local v = tonumber(value) or 0
+  return math.floor(v + 0.5)
 end
 
 function split(s, sep)
-    local fields = {}
-    local sep = sep or " "
-    local pattern = string.format("([^%s]+)", sep)
-    string.gsub(s, pattern, function(c)fields[#fields + 1] = c end)
-    return fields
+  local fields = {}
+  sep = sep or " "
+  local pattern = string.format("([^%s]+)", sep)
+  string.gsub(s, pattern, function(c) fields[#fields + 1] = c end)
+  return fields
 end
 
-local function hasValue(s)
-    if s == nil or s == '' then return "empty"
-    else return s end
-end
-
-function print_r(arr, indentLevel)
-    local str = ""
-    local indentStr = "#"
-    
-    if (indentLevel == nil) then
-        system.print(print_r(arr, 0))
-        return
-    end
-    
-    for i = 0, indentLevel do
-        indentStr = indentStr .. "\t"
-    end
-    
-    for index, value in pairs(arr) do
-        if type(value) == "table" then
-            str = str .. indentStr .. index .. ": \n" .. print_r(value, (indentLevel + 1))
-        else
-            str = str .. indentStr .. index .. ": " .. value .. "\n"
-        end
-    end
-    return str
-end
-
-function arraylength(T)
-    local count = 0
-    if T == nil then return 0
-    else
-        for _ in pairs(T) do count = count + 1 end
-        return count
-    end
-end
-
-function getFromArray(array, position)
-    u = ""
-    for i, j in pairs(array) do u = j[position] end
-    --print_r(array)
-    return u
-end
+local function hasValue(s) return (s == nil or s == "") and "empty" or s end
 
 ----------------
 -- CORE STUFF --
@@ -189,96 +119,73 @@ end
 core = nil
 dbank = nil
 for slot_name, slot in pairs(unit) do
-    if
-        type(slot) == "table"
-        and type(slot.export) == "table"
-        and slot.getElementClass
-    then
-        if slot.getClass():lower():find("coreunit") then
-            core = slot
-        elseif
-            slot.getClass():lower():find("databank") then
-            dbank = slot
-        end
+  if type(slot) == "table" and type(slot.export) == "table" and slot.getElementClass then
+    if slot.getClass():lower():find("coreunit") then
+      core = slot
+    elseif slot.getClass():lower():find("databank") then
+      dbank = slot
     end
+  end
 end
 
--- Parse tokens like "10XLu", "2XXLa", "5L", "xxl", "XL-", "XXL " etc.
--- Returns: count (number), sizeKey ("XS","S","M","L","XL","XXL" + optional "u"/"a"/"r")
+-- Parse tokens like "10XLu", "2XXLa", "5Le", "xxl", etc.
+-- Returns: count (number), sizeKey ("XS","S","M","L","XL","XXL" + optional "u"/"a"/"r"/"e")
 local function parseCountAndSize(token)
-    token = tostring(token or ""):gsub("%s+", "")         -- strip spaces
-    local d = token:match("^(%d+)")                       -- leading digits
-    local count = tonumber(d) or 1
-    local rest = d and token:sub(#d + 1) or token
-    if rest == "" then rest = "L" end
+  token = tostring(token or ""):gsub("%s+", "")
+  local d = token:match("^(%d+)")
+  local count = tonumber(d) or 1
+  local rest = d and token:sub(#d + 1) or token
+  if rest == "" then rest = "L" end
+  local up = rest:upper()
 
-    -- normalize
-    local up = rest:upper()
+  local base = up:match("XXL") or up:match("XL") or up:match("XS")
+            or up:match("^L$") or up:match("^M$") or up:match("^S$")
+  if not base then
+    base = (up:find("XXL") and "XXL") or (up:find("XL") and "XL") or (up:find("XS") and "XS")
+         or (up:find("L") and "L") or (up:find("M") and "M") or (up:find("S") and "S") or "L"
+  end
 
-    -- find base by priority (avoid matching 'L' inside 'XL'/'XXL')
-    local base =
-        up:match("XXL") or
-        up:match("XL")  or
-        up:match("XS")  or
-        up:match("^L$") or
-        up:match("^M$") or
-        up:match("^S$")
-
-    if not base then
-        -- last-ditch: if someone typed something odd like "XL-adv"
-        base = (up:find("XXL") and "XXL")
-            or (up:find("XL") and "XL")
-            or (up:find("XS") and "XS")
-            or (up:find("L") and "L")
-            or (up:find("M") and "M")
-            or (up:find("S") and "S")
-            or "L"
-    end
-
-    -- optional tier: only take it if it's the final char
-    local tier = up:match("[UAR]$") or ""
-    return count, (base .. tier:lower())
+  -- accept Exotic suffix
+  local tier = up:match("[UARE]$") or ""
+  return count, (base .. tier:lower())
 end
-
 
 containersIdList = {}
 if core ~= nil then
-    local elementsIdList = core.getElementIdList()
-    for _, id in pairs(elementsIdList) do
-        local elementType = core.getElementDisplayNameById(id):lower()
-        if elementType:find("container") then
-            local name = core.getElementNameById(id)
-            if name:match("^CH_") or name:match("^C_") then
-                local temp = split(name, "_")
-				-- Extract "<count><size><tier>" from the second token, e.g. "10XLu" -> 10, "XLu"
-				local count, sizeKey = parseCountAndSize(temp[2])
-				table.insert(
-					containersIdList,
-						{ id, temp[1], count, sizeKey, temp[3], hasValue(temp[4]) }
-				) -- 1:id, 2:type, 3:containercount, 4:containersize, 5:material, 6:description
-            end
-        end
+  local elementsIdList = core.getElementIdList()
+  for _, id in pairs(elementsIdList) do
+    local elementType = core.getElementDisplayNameById(id):lower()
+    if elementType:find("container") then
+      local name = core.getElementNameById(id)
+      if name:match("^CH_") or name:match("^C_") then
+        local temp = split(name, "_")
+        local count, sizeKey = parseCountAndSize(temp[2])
+        table.insert(containersIdList, { id, temp[1], count, sizeKey, temp[3], hasValue(temp[4]) })
+        -- 1:id, 2:type, 3:containercount, 4:containersize, 5:material, 6:description
+      end
     end
+  end
 end
 
 function checkDB()
-    dbVersion = dbank.getFloatValue("version")
-    if dbVersion == nil then return nil
-    elseif dbVersion < version then return "upgrade"
-    else return "noupgrade" end
+  dbVersion = dbank and dbank.getFloatValue("version") or nil
+  if dbVersion == nil then return nil
+  elseif dbVersion < version then return "upgrade"
+  else return "noupgrade" end
 end
 
 function saveDB()
+  if not dbank then return end
   dbank.setFloatValue("version", version)
   dbank.setIntValue("ItemMassReductionTalents", ItemMassReductionTalents)
   dbank.setIntValue("ContainerCapacityTalents", ContainerCapacityTalents)
   dbank.setIntValue("TierStepPercent", TierStepPercent)
-  dbank.setIntValue("BaseCap_XS", BaseContainerCapacityL.XS or 0)
-  dbank.setIntValue("BaseCap_S",  BaseContainerCapacityL.S  or 0)
-  dbank.setIntValue("BaseCap_M",  BaseContainerCapacityL.M  or 0)
-  dbank.setIntValue("BaseCap_L",  BaseContainerCapacityL.L  or 0)
-  dbank.setIntValue("BaseCap_XL", BaseContainerCapacityL.XL or 0)
-  dbank.setIntValue("BaseCap_XXL",BaseContainerCapacityL.XXL or 0)
+  dbank.setIntValue("BaseCap_XS",  BaseContainerCapacityL.XS  or 0)
+  dbank.setIntValue("BaseCap_S",   BaseContainerCapacityL.S   or 0)
+  dbank.setIntValue("BaseCap_M",   BaseContainerCapacityL.M   or 0)
+  dbank.setIntValue("BaseCap_L",   BaseContainerCapacityL.L   or 0)
+  dbank.setIntValue("BaseCap_XL",  BaseContainerCapacityL.XL  or 0)
+  dbank.setIntValue("BaseCap_XXL", BaseContainerCapacityL.XXL or 0)
   dbank.setIntValue("Percentage_RED", Percentage_RED)
   dbank.setIntValue("Percentage_GREEN", Percentage_GREEN)
   dbank.setIntValue("UseContainerHubs", UseContainerHubs and 1 or 0)
@@ -287,498 +194,371 @@ function saveDB()
 end
 
 function readDB()
-  if dbank.getFloatValue("version") then
-    ItemMassReductionTalents = dbank.getIntValue("ItemMassReductionTalents") or ItemMassReductionTalents
-    ContainerCapacityTalents = dbank.getIntValue("ContainerCapacityTalents") or ContainerCapacityTalents
-    TierStepPercent = dbank.getIntValue("TierStepPercent") or TierStepPercent
-    BaseContainerCapacityL.XS  = dbank.getIntValue("BaseCap_XS")  or BaseContainerCapacityL.XS
-    BaseContainerCapacityL.S   = dbank.getIntValue("BaseCap_S")   or BaseContainerCapacityL.S
-    BaseContainerCapacityL.M   = dbank.getIntValue("BaseCap_M")   or BaseContainerCapacityL.M
-    BaseContainerCapacityL.L   = dbank.getIntValue("BaseCap_L")   or BaseContainerCapacityL.L
-    BaseContainerCapacityL.XL  = dbank.getIntValue("BaseCap_XL")  or BaseContainerCapacityL.XL
-    BaseContainerCapacityL.XXL = dbank.getIntValue("BaseCap_XXL") or BaseContainerCapacityL.XXL
-    Percentage_RED = dbank.getIntValue("Percentage_RED") or Percentage_RED
-    Percentage_GREEN = dbank.getIntValue("Percentage_GREEN") or Percentage_GREEN
-    UseContainerHubs = (dbank.getIntValue("UseContainerHubs") == 1)
-    UseDoors = (dbank.getIntValue("UseDoors") == 1)
-    showHudWidget = (dbank.getIntValue("showHudWidget") == 1)
+  if not dbank then return end
+  local hasVersion = dbank.getFloatValue("version")
+
+  local function nz(key, default)
+    local v = dbank.getIntValue(key)
+    if v and v > 0 then return v else return default end
   end
-end
+
+  if hasVersion then
+    ItemMassReductionTalents  = dbank.getIntValue("ItemMassReductionTalents") or ItemMassReductionTalents
+    ContainerCapacityTalents  = dbank.getIntValue("ContainerCapacityTalents") or ContainerCapacityTalents
+    TierStepPercent           = dbank.getIntValue("TierStepPercent")          or TierStepPercent
+    Percentage_RED            = dbank.getIntValue("Percentage_RED")           or Percentage_RED
+    Percentage_GREEN          = dbank.getIntValue("Percentage_GREEN")         or Percentage_GREEN
+    UseContainerHubs          = (dbank.getIntValue("UseContainerHubs") == 1)
+    UseDoors                  = (dbank.getIntValue("UseDoors") == 1)
+    showHudWidget             = (dbank.getIntValue("showHudWidget") == 1)
+
+    -- base capacities: only accept non-zero, otherwise keep code defaults
+    BaseContainerCapacityL.XS  = nz("BaseCap_XS",  BaseContainerCapacityL.XS)
+    BaseContainerCapacityL.S   = nz("BaseCap_S",   BaseContainerCapacityL.S)
+    BaseContainerCapacityL.M   = nz("BaseCap_M",   BaseContainerCapacityL.M)
+    BaseContainerCapacityL.L   = nz("BaseCap_L",   BaseContainerCapacityL.L)
+    BaseContainerCapacityL.XL  = nz("BaseCap_XL",  BaseContainerCapacityL.XL)
+    BaseContainerCapacityL.XXL = nz("BaseCap_XXL", BaseContainerCapacityL.XXL)
+  end
 end
 
 function goDB()
-    if dbank ~= nil then
-        system.print("DATABANK FOUND")
-        system.print("SCRIPT LOAD OK. CHECKING DB VERSION")
-        
-        if checkDB() == nil then
-            system.print("UPGRADE DETECTED. FIRST RUN? LOADING KICKSTART")
-            unit.setTimer("kickstart", 1)
-        elseif checkDB() == "upgrade" then
-            readDB()
-            system.print("UPGRADE DETECTED. USER CONFIG LOADED. LOADING KICKSTART")
-            unit.setTimer("kickstart", 1)
-        else
-            readDB()
-            system.print("NO UPGRADE NEEDED. SAME VERSION. LOADING KICKSTART")
-            unit.setTimer("kickstart", 1)
-        end
+-- >>> TEMP: force talents to full (write to DB) <<<
+  -- ItemMassReductionTalents = 5
+  -- ContainerCapacityTalents = 5
+  -- saveDB()
+  -- reload()
+-- <<< comment these lines after it shows correct kL >>>
+  if dbank ~= nil then
+    system.print("DATABANK FOUND")
+    system.print("SCRIPT LOAD OK. CHECKING DB VERSION")
+
+    local st = checkDB()
+    if st == nil then
+      system.print("UPGRADE DETECTED. FIRST RUN? LOADING KICKSTART")
+      saveDB()  -- seed defaults
+      unit.setTimer("kickstart", 1)
+    elseif st == "upgrade" then
+      readDB()
+      saveDB()  -- persist new keys if old DB missed them
+      system.print("UPGRADE DETECTED. USER CONFIG LOADED. LOADING KICKSTART")
+      unit.setTimer("kickstart", 1)
     else
-        system.print("NO DATABANK FOUND. LOADING KICKSTART")
-        unit.setTimer("kickstart", 1)
+      readDB()
+      unit.setTimer("kickstart", 1)
     end
+  else
+    system.print("NO DATABANK FOUND. LOADING KICKSTART")
+    unit.setTimer("kickstart", 1)
+  end
 end
+
 ----------
 -- HTML --
 ----------
 local html_css
 if UseContainerHubs then
-    html_css = [[
-    <style> 
-    .table {background-color:none; height:99vh; margin:auto; padding:0; position:relative; width:98vw} 
-    .column_1_2 {background-color:none; position:absolute; left:20px; height:100%; width:45vw} 
-    .column_2_2 {background-color:none; position:absolute; right:0; height:100%; width:45vw} 
-    .row {background-color:none; height:9.8vh; border:0px grey solid; padding-left:35%; width:99%} 
-    .rowinfo {background-color:none; height:9.8vh; width:99%; text-align: center; font-size: 1.4vw;font-weight:300; padding-top:6px}
-    .name {background-color:none; padding-left:0px; line-height:5vh; font-size: 4vh; display:inline-block; width:70%}
-    .progressbar {background-color:green; position:relative; float:right; bottom:2px; min-height:1vh; height:1vh; right:0; min-width:1vw}
-    .daysavailable {width:100%; background-color:none; position:relative; float:left; text-align:right; bottom:2px; height:2vh;font-size:12px}
-    .percentage {background-color:none; font-size: 5vh; line-height: 5vh; width:8.5vw; top: 0; right: 0; text-align:right; display:inline-block} 
-    .desc {font-size:1.5vw; background-color: none; width: 98%; display: inline-block;}
-    .info {font-size:1.5vw; background-color: none; width: 30%; display: inline-block; right: 5px; position: absolute; text-align: right;}
-    </style>
-    ]]
-
-else html_css = [[ 
-    <style> 
-    .table {background-color:none; height:99vh; margin:auto; padding:0; position:relative; width:50vw; display:inline-block} 
-    .column_1_2 {background-color:none; position:absolute; height:100%; width:25vw} 
-    .column_2_2 {background-color:none; position:absolute; right:0; height:100%; width:25vw}
-    .row {background-color:none; height:9.8vh; width:99%; padding: 0 8px} 
-    .rowinfo {background-color:none; height:9.8vh; width:99%; text-align: center; font-size: 1.4vw;font-weigh:300; padding-top:6px}
-    .name {background-color:none; padding-left:0px; line-height:5vh; font-size: 3vh; display:inline-block; width:64%} 
-    .progressbar {background-color:green; position:relative; float:right; bottom:2px; min-height:1vh; height:1vh; right:0; min-width:1vw}
-    .daysavailable {width:100%; background-color:none; position:relative; float:left; text-align:right; bottom:2px; height:2vh;font-size:12px}
-    .percentage {background-color:none; font-size: 4vh; line-height: 5vh; width:36%; top: 0; right: 0px; text-align:right; display:inline-block; padding:0}
-    .desc {font-size:1.2vw; background-color: none; width: 98%; display: inline-block;}
-    .info {font-size:1.2vw; background-color: none; width: 50%; display: inline-block; right: 10px; position: absolute; text-align: right;}
-    </style>   
-    ]]
-
+  html_css = [[
+  <style> 
+  .table{height:99vh;margin:auto;padding:0;position:relative;width:98vw}
+  .column_1_2{position:absolute;left:20px;height:100%;width:45vw}
+  .column_2_2{position:absolute;right:0;height:100%;width:45vw}
+  .row{height:9.8vh;border:0px grey solid;padding-left:35%;width:99%}
+  .rowinfo{height:9.8vh;width:99%;text-align:center;font-size:1.4vw;font-weight:300;padding-top:6px}
+  .name{padding-left:0;line-height:5vh;font-size:4vh;display:inline-block;width:70%}
+  .progressbar{position:relative;float:right;bottom:2px;min-height:1vh;height:1vh;right:0;min-width:1vw}
+  .daysavailable{width:100%;position:relative;float:left;text-align:right;bottom:2px;height:2vh;font-size:12px}
+  .percentage{font-size:5vh;line-height:5vh;width:8.5vw;top:0;right:0;text-align:right;display:inline-block} 
+  .desc{font-size:1.5vw;width:98%;display:inline-block}
+  .info{font-size:1.5vw;width:30%;display:inline-block;right:5px;position:absolute;text-align:right}
+  </style>]]
+else
+  html_css = [[
+  <style> 
+  .table{height:99vh;margin:auto;padding:0;position:relative;width:50vw;display:inline-block}
+  .column_1_2{position:absolute;height:100%;width:25vw}
+  .column_2_2{position:absolute;right:0;height:100%;width:25vw}
+  .row{height:9.8vh;width:99%;padding:0 8px} 
+  .rowinfo{height:9.8vh;width:99%;text-align:center;font-size:1.4vw;font-weight:300;padding-top:6px}
+  .name{padding-left:0;line-height:5vh;font-size:3vh;display:inline-block;width:64%}
+  .progressbar{position:relative;float:right;bottom:2px;min-height:1vh;height:1vh;right:0;min-width:1vw}
+  .daysavailable{width:100%;position:relative;float:left;text-align:right;bottom:2px;height:2vh;font-size:12px}
+  .percentage{font-size:4vh;line-height:5vh;width:36%;top:0;right:0;text-align:right;display:inline-block;padding:0}
+  .desc{font-size:1.2vw;width:98%;display:inline-block}
+  .info{font-size:1.2vw;width:50%;display:inline-block;right:10px;position:absolute;text-align:right}
+  </style>]]
 end
 
 css_loading = [[
-    <style> 
-    .wrapper{background-color:none;color:white;font-size:2vw;}
-    .valign > div{border:dotted 1px white;padding:20px 20px;}
-    .wrapper {position: absolute;width: 100%;height: 100%;}
-    .valign {width: 100%;height: 100%;display: flex;justify-content: center;align-items: center;}
-    </style>
+  <style> 
+  .wrapper{color:white;font-size:2vw;}
+  .valign>div{border:dotted 1px white;padding:20px 20px;}
+  .wrapper{position:absolute;width:100%;height:100%;}
+  .valign{width:100%;height:100%;display:flex;justify-content:center;align-items:center;}
+  </style>
 ]]
 
 local material_readout_top = [[<div class="table"><div class="column_1_2">]]
 
 function material_readout_cell(name)
-    x = {}
-    --system.print("NAME: "..hasValue(name))
-    if name == nil then
-        html = [[<div class="row"><div class="name"></div><div class="percentage"></div><div class="progressbar" style="width:0%; background-color:pink">&nbsp;</div></div>]]
+  x = {}
+  if name == nil then
+    html = [[<div class="row"><div class="name"></div><div class="percentage"></div><div class="progressbar" style="width:0%">&nbsp;</div></div>]]
+  else
+    x = getMaterial(name)
+    if next(x) == nil then
+      html = [[<div class="rowinfo">PLEASE CONNECT<br>]] .. name .. [[</div>]]
     else
-        --system.print(name)
-        x = getMaterial(name)
-        --system.print("ENTRA 1")
-        if next(x) == nil then
-            --system.print("array vazio")
-            html = [[<div class="rowinfo">PLEASE CONNECT<br>]] .. name .. [[</div>]]
-        else
-            percentage = getFromArray(x, 9)
-            description = getFromArray(x, 6)
-            if description == "empty" then description = "" end
-            quantity = getFromArray(x, 8)
-            totalcontainerqtdinlitre = getFromArray(x, 10)
-            --print_r(x)
-            --system.print("MATERIAL: "..name.." | %: "..percentage)
-            html = [[<div class="row"><div class="name">]] .. _G[name][1] .. [[</div><div class="percentage">]] .. percentage .. [[%</div><div class="progressbar" style="width:]] .. percentage .. [[%; background-color:]] .. progresscolor(percentage) .. [[">&nbsp;</div>
-            <div class="desc">]]
-                .. description .. [[</div><div class="info">]] .. litreParse(quantity, totalcontainerqtdinlitre) .. [[</div></div>]]
-        --system.print(progresscolor(percentage))
-        end
+      local row = x[1]
+		percentage = row and row[9] or 0
+		description = row and row[6] or ""
+		quantity = row and row[8] or 0
+		totalcontainerqtdinlitre = row and row[10] or 0
+      if description == "empty" then description = "" end
+       html = [[<div class="row"><div class="name">]] .. _G[name][1] .. [[</div><div class="percentage">]] .. percentage .. [[%</div><div class="progressbar" style="width:]] .. percentage .. [[%; background-color:]] .. progresscolor(percentage) .. [[">&nbsp;</div>
+      <div class="desc">]] .. description .. [[</div><div class="info">]] .. litreParse(quantity, totalcontainerqtdinlitre) .. [[</div></div>]]
     end
-    return html
+  end
+  return html
 end
 
 local material_readout_middle = [[</div><div class="column_2_2">]]
 local material_readout_bottom = [[</div></div>]]
 
 function progresscolor(percentage)
-    if tonumber(percentage) then
-        color = ""
-        if (percentage <= Percentage_RED) then
-            color = "red"
-        elseif (percentage > Percentage_RED) and (percentage < Percentage_GREEN) then
-            color = "yellow"
-        else
-            color = "green"
-        end
-        return color
-    else
-        return "pink"
-    end
+  if tonumber(percentage) then
+    if percentage <= Percentage_RED then return "red"
+    elseif percentage < Percentage_GREEN then return "yellow"
+    else return "green" end
+  else
+    return "pink"
+  end
 end
 
 function litreParse(litre, total)
-    size = ""
-    if total < 1000 then
-        size = "L"
-    elseif total < 1000000 then
-        total = total / 1000
-        size = "kL"
-    else
-        total = total / 1000000
-        size = "kt"
-    end
-    
-    if litre < 1000 then return string.format("%.1f", litre) .. "/" .. string.format("%.1f", total) .. size
-    elseif litre < 1000000 then
-        litre = litre / 1000
-        return string.format("%.1f", litre) .. "/" .. string.format("%.1f", total) .. size
-    else
-        litre = litre / 10000
-        total = total / 1000
-        return string.format("%.1f", litre) .. "/" .. string.format("%.1f", total) .. size
-    end
+  local size = ""
+  if total < 1000 then size = "L"
+  elseif total < 1000000 then total = total / 1000; size = "kL"
+  else total = total / 1000000; size = "kt" end
+
+  if litre < 1000 then
+    return string.format("%.1f", litre) .. "/" .. string.format("%.1f", total) .. size
+  elseif litre < 1000000 then
+    litre = litre / 1000
+    return string.format("%.1f", litre) .. "/" .. string.format("%.1f", total) .. size
+  else
+    litre = litre / 10000
+    total = total / 1000
+    return string.format("%.1f", litre) .. "/" .. string.format("%.1f", total) .. size
+  end
 end
 
 --------------------
 -- MATERIAL STUFF --
 --------------------
--- VARIABLE = {Name that will be displayed on screen, unit mass, unit volume if exists}
 function createMaterials()
-    -- T1
-    HEMATITE = {"Hematite", 5.04}
-    IRON = {"Iron", 7.85}
-    BAUXITE = {"Bauxite", 1.28}
-    ALUMINIUM = {"Aluminium", 2.7}
-    QUARTZ = {"Quartz", 2.65}
-    SILICON = {"Silicon", 2.33}
-    COAL = {"Coal", 1.35}
-    CARBON = {"Carbon", 2.27}
-    -- T2
-    LIMESTONE = {"Limestone", 2.7}
-    CALCIUM = {"Calcium", 1.55}
-    MALACHITE = {"Malachite", 4}
-    COPPER = {"Copper", 8.96}
-    NATRON = {"Natron", 1.55}
-    SODIUM = {"Sodium", 0.97}
-    CHROMITE = {"Chromite", 4.54}
-    CHROMIUM = {"Chromium", 7.19}
-    -- T3
-    PYRITE = {"Pyrite", 5.01}
-    SULFUR = {"Sulfur", 1.82}
-    PETALITE = {"Petalite", 2.41}
-    LITHIUM = {"Lithium", 0.53}
-    ACANTHITE = {"Acanthite", 7.2}
-    SILVER = {"Silver", 10.49}
-    GARNIERITE = {"Garnierite", 2.6}
-    NICKEL = {"Nickel", 8.91}
-    -- T4
-    GOLDNUGGETS = {"Gold Nuggets", 19.3}
-    GOLD = {"Gold", 19.3}
-    CRYOLITE = {"Cryolite", 2.95}
-    FLUORINE = {"Fluorine", 1.7}
-    COBALTITE = {"Cobaltite", 6.33}
-    COBALT = {"Cobalt", 8.9}
-    KOLBECKITE = {"Kolbeckite", 2.37}
-    SCANDIUM = {"Scandium", 2.98}
-    -- T5
-    RHODONITE = {"Rhodonite", 3.76}
-    MANGANESE = {"Manganese", 7.21}
-    COLUMBITE = {"Columbite", 5.38}
-    NIOBIUM = {"Niobium", 8.57}
-    VANADINITE = {"Vanadinite", 6.95}
-    VANADIUM = {"Vanadium", 6}
-    ILMENITE = {"Ilmenite", 4.55}
-    TITANIUM = {"Titanium", 4.51}
-    -- OTHER
-    OXYGEN = {"Oxygen", 1}
-    HYDROGEN = {"Hydrogen", 0.07}
-    WARPCELL = {"Warpcell", 100}
-    -- STUFF
-    AILERONM = {"Aileron M", 3410, 1238.4}
+  -- T1
+  HEMATITE={"Hematite",5.04}; IRON={"Iron",7.85}; BAUXITE={"Bauxite",1.28}; ALUMINIUM={"Aluminium",2.7}
+  QUARTZ={"Quartz",2.65}; SILICON={"Silicon",2.33}; COAL={"Coal",1.35}; CARBON={"Carbon",2.27}
+  -- T2
+  LIMESTONE={"Limestone",2.7}; CALCIUM={"Calcium",1.55}; MALACHITE={"Malachite",4}; COPPER={"Copper",8.96}
+  NATRON={"Natron",1.55}; SODIUM={"Sodium",0.97}; CHROMITE={"Chromite",4.54}; CHROMIUM={"Chromium",7.19}
+  -- T3
+  PYRITE={"Pyrite",5.01}; SULFUR={"Sulfur",1.82}; PETALITE={"Petalite",2.41}; LITHIUM={"Lithium",0.53}
+  ACANTHITE={"Acanthite",7.2}; SILVER={"Silver",10.49}; GARNIERITE={"Garnierite",2.6}; NICKEL={"Nickel",8.91}
+  -- T4
+  GOLDNUGGETS={"Gold Nuggets",19.3}; GOLD={"Gold",19.3}; CRYOLITE={"Cryolite",2.95}; FLUORINE={"Fluorine",1.7}
+  COBALTITE={"Cobaltite",6.33}; COBALT={"Cobalt",8.9}; KOLBECKITE={"Kolbeckite",2.37}; SCANDIUM={"Scandium",2.98}
+  -- T5
+  RHODONITE={"Rhodonite",3.76}; MANGANESE={"Manganese",7.21}; COLUMBITE={"Columbite",5.38}; NIOBIUM={"Niobium",8.57}
+  VANADINITE={"Vanadinite",6.95}; VANADIUM={"Vanadium",6}; ILMENITE={"Ilmenite",4.55}; TITANIUM={"Titanium",4.51}
+  -- OTHER
+  OXYGEN={"Oxygen",1}; HYDROGEN={"Hydrogen",0.07}; WARPCELL={"Warpcell",100}
 end
 
 function getQuantity(material, materialmass)
-    quantity = nil
-    quantity = roundint(materialmass / (_G[material][2]))
-    return quantity
+  return roundint(materialmass / (_G[material][2]))
 end
 
 function createMaterialArray(material)
-    arrayX = {}
-    for i, j in pairs(containersIdList) do
-        if j[5] == material then
-			if (j[2] == "CH") or (j[2] == "C" and j[6] == "empty") then
-                --system.print("id: "..j[1]..", type: "..j[2]..", quantity: "..j[3]..", size: "..j[4]..", material: "..j[5]..", description: "..j[6])
-                table.insert(arrayX, {j[1], j[2], j[3], j[4], j[5], j[6]})
-            end
-        end
+  local arrayX = {}
+  for _, j in pairs(containersIdList) do
+    if j[5] == material then
+      if (j[2] == "CH") or (j[2] == "C" and j[6] == "empty") then
+        table.insert(arrayX, {j[1], j[2], j[3], j[4], j[5], j[6]})
+      end
     end
-    return arrayX
+  end
+  return arrayX
 end
 
--- Capacity (in L) for ONE container with sizeKey like "XXL", "XLu", "XXLa", etc.
+-- Capacity (in L) for ONE container with sizeKey like "XXL", "XLu", "XXLe", etc.
 function getContainerCapacity(sizeKey)
-  local base, tier = splitSizeTier(sizeKey)
-  local baseL = BaseContainerCapacityL[base] or 0
-  if baseL == 0 then
-    system.print("WARN: unknown base capacity for size '"..tostring(base).."'")
-  end
-
-  local tierSteps = getTierSteps(tier)
-  local tierMult  = getTierStepMultiplier() ^ tierSteps
-  local talentMult = getCapacityTalentMultiplier()
-
+  local base, tier  = splitSizeTier(sizeKey)
+  local baseL       = BaseContainerCapacityL[base] or 0
+  if baseL == 0 then system.print("WARN: unknown base capacity for size '"..tostring(base).."'") end
+  local tierSteps   = getTierSteps(tier)
+  local tierMult    = getTierStepMultiplier() ^ tierSteps
+  local talentMult  = getCapacityTalentMultiplier()
   return baseL * tierMult * talentMult
 end
 
-
-function getContainerMass(size)
-    mass = 0
--- XS MASS --	
-    if size == "XS" then mass = 229
-	    elseif size == "XSu" then mass = 183
-		    elseif size == "XSa" then mass = 147
-			    elseif size == "XSr" then mass = 117
--- S MASS --					
-	elseif size == "S" then mass = 1281
-		elseif size == "Su" then mass = 1020
-			elseif size == "Sa" then mass = 820
-				elseif size == "Sr" then mass = 656
--- M MASS --					
-	elseif size == "M" then mass = 7420
-		elseif size == "Mu" then mass = 5940
-			elseif size == "Ma" then mass = 4750
-				elseif size == "Mr" then mass = 3800
--- L MASS --					
-	elseif size == "L" then mass = 14840
-		elseif size == "Lu" then mass = 11870
-			elseif size == "La" then mass = 9500
-				elseif size == "Lr" then mass = 7600
--- XL MASS --					
-	elseif size == "XL" then mass = 44210
-		elseif size == "XLu" then mass = 35370
-			elseif size == "XLa" then mass = 28290
-				elseif size == "XLr" then mass = 22630
--- XXL MASS --		
-	elseif size == "XXL" then mass = 88410
-		elseif size == "XXLu" then mass = 70730
-			elseif size == "XXLa" then mass = 56580
-				elseif size == "XXLr" then mass = 45270
-    else
-        mass = 0
-    end
-    return mass
+-- Empty mass for ONE container by base size only (works for all tiers, incl. Exotic)
+local function getContainerMass(sizeKey)
+  local base = (function()
+    local up = tostring(sizeKey or 'L'):upper()
+    return up:match('XXL') or up:match('XL') or up:match('XS')
+        or (up == 'L' and 'L') or (up == 'M' and 'M') or (up == 'S' and 'S') or 'L'
+  end)()
+  local m = { XS=229.09, S=1281.31, M=7421.35, L=14842.7, XL=44210, XXL=88410 }
+  return m[base] or 0
 end
+
+local function arraylength(t)
+  if type(t) ~= "table" then return 0 end
+  local n = 0; for _ in pairs(t) do n = n + 1 end
+  return n
+end
+
 
 function calculateMaterial(arrayx)
-    local containermass = 0
-    local percentage = 0
-    local arrayY = {}
+  local containermass, percentage = 0, 0
+  local arrayY = {}
 
-    for i, j in pairs(arrayx) do
-        local capacity = getContainerCapacity(j[4]) * tonumber(j[3])  -- FIX: container count
-			if j[2] == "CH" then
-				containermass = core.getElementMassById(j[1]) - 55.8 -- CH base mass
-			if containermass > 0 then
-				local factor = getItemMassReductionFactor() -- e.g. 0.75 when talents=5
-			if factor <= 0 then factor = 1.0 end        -- guardrail
-				local adjustedMass = containermass / factor  -- undo the in-game reduction
-					quantity = getQuantity(j[5], adjustedMass)
-					
-                -- ✅ DEBUG PRINT
-system.print(string.format(
-  "[%s] %s size %s x%d | talents=%d (factor=%.2f) | mass raw=%.1f adj=%.1f | L=%.2f",
-  j[2], j[5], tostring(j[4]), j[3],
-  math.floor(tonumber(ItemMassReductionTalents) or 0),
-  getItemMassReductionFactor(),
-  containermass, adjustedMass, quantity
-))
-				
-                if _G[j[5]][3] ~= nil then
-                    percentage = containerPercentage(quantity * _G[j[5]][3], capacity)
-                    quantity = quantity * _G[j[5]][3]
-                else
-                    percentage = containerPercentage(quantity, capacity)
-                end
-
-                totalcontainerquantityinlitre = capacity
-                table.insert(arrayY, {j[1], j[2], j[3], j[4], j[5], j[6], containermass, quantity, percentage, totalcontainerquantityinlitre})
-            end
-
-elseif j[2] == "C" then
-    containermass = core.getElementMassById(j[1]) - getContainerMass(j[4])
-    if containermass > 0 then
-        local factor = getItemMassReductionFactor()
-        if factor <= 0 then factor = 1.0 end
+  for _, j in pairs(arrayx) do
+    local capacity = getContainerCapacity(j[4]) * tonumber(j[3])
+    if j[2] == "CH" then
+      containermass = core.getElementMassById(j[1]) - 55.8 -- CH base mass
+      if containermass > 0 then
+        local factor = getItemMassReductionFactor(); if factor <= 0 then factor = 1.0 end
         local adjustedMass = containermass / factor
         quantity = getQuantity(j[5], adjustedMass)
-                -- ✅ DEBUG PRINT		
-		system.print(string.format(
-  "[%s] %s size %s x%d | talents=%d (factor=%.2f) | mass raw=%.1f adj=%.1f | L=%.2f",
-  j[2], j[5], tostring(j[4]), j[3],
-  math.floor(tonumber(ItemMassReductionTalents) or 0),
-  getItemMassReductionFactor(),
-  containermass, adjustedMass, quantity
-))
 
-                if _G[j[5]][3] ~= nil then
-                    percentage = containerPercentage(quantity * _G[j[5]][3], capacity)
-                    quantity = quantity * _G[j[5]][3]
-                else
-                    percentage = containerPercentage(quantity, capacity)
-                end
-
-                totalcontainerquantityinlitre = capacity
-                table.insert(arrayY, {j[1], j[2], j[3], j[4], j[5], j[6], containermass, quantity, percentage, totalcontainerquantityinlitre})
-
-                -- ✅ DEBUG PRINT
-                system.print("C: "..j[5].." | Size: "..j[4].." | Count: "..j[3].." | Mass: "..string.format("%.2f", containermass).." | Qty: "..string.format("%.2f", quantity).." | Cap: "..capacity.." | %: "..percentage)
-            end
-        end
-    end
-
-    -- Consolidate if more than 1 container present
-    if arraylength(arrayY) > 1 then
-        local arrayZ = {}
-        local v1, v2, v3, v4, v5, v6 = 999999999, "C", 0, "SUM", "", ""
-        local v7, v8, v9, v10 = 0, 0, 0, 0
-
-        for _, j in pairs(arrayY) do
-            v5 = j[5]
-            v7 = v7 + getContainerCapacity(j[4]) * tonumber(j[3])
-            v8 = v8 + j[8]
-            v10 = v10 + j[10]
+        if _G[j[5]][3] ~= nil then
+          percentage = containerPercentage(quantity * _G[j[5]][3], capacity)
+          quantity   = quantity * _G[j[5]][3]
+        else
+          percentage = containerPercentage(quantity, capacity)
         end
 
-        v9 = containerPercentage(v8, v7)
-        table.insert(arrayZ, {v1, v2, v3, v4, v5, v6, v7, v8, v9, v10})
-        return arrayZ
-    end
+        local totalL = capacity
+        table.insert(arrayY, {j[1], j[2], j[3], j[4], j[5], j[6], containermass, quantity, percentage, totalL})
+      end
 
-    return arrayY
+    elseif j[2] == "C" then
+      containermass = core.getElementMassById(j[1]) - getContainerMass(j[4])
+      if containermass > 0 then
+        local factor = getItemMassReductionFactor(); if factor <= 0 then factor = 1.0 end
+        local adjustedMass = containermass / factor
+        quantity = getQuantity(j[5], adjustedMass)
+
+        if _G[j[5]][3] ~= nil then
+          percentage = containerPercentage(quantity * _G[j[5]][3], capacity)
+          quantity   = quantity * _G[j[5]][3]
+        else
+          percentage = containerPercentage(quantity, capacity)
+        end
+
+        local totalL = capacity
+        table.insert(arrayY, {j[1], j[2], j[3], j[4], j[5], j[6], containermass, quantity, percentage, totalL})
+      end
+    end
+  end
+
+  -- Consolidate if more than 1 container present
+  if arraylength(arrayY) > 1 then
+    local capSum, qtySum, mat = 0, 0, ""
+    for _, r in pairs(arrayY) do
+      capSum = capSum + getContainerCapacity(r[4]) * tonumber(r[3])
+      qtySum = qtySum + r[8]
+      mat    = r[5]
+    end
+    return {{999999999, "C", 0, "SUM", mat, "", capSum, qtySum, containerPercentage(qtySum, capSum), capSum}}
+  end
+
+  return arrayY
 end
 
-
 function containerPercentage(materialqtd, containercapacity)
-    if materialqtd ~= nil then
-        local x = materialqtd * 100 / containercapacity
-        local y = math.floor(x + .5)
-        if y - x < 0.05 then
-            return roundint(x)
-        else
-            return round(x)
-        end
-    else
-        return 666
-    end
+  if materialqtd and containercapacity and containercapacity > 0 then
+    -- round to nearest integer percent
+    return math.floor((materialqtd * 100 / containercapacity) + 0.5)
+  else
+    return 0
+  end
 end
 
 function getMaterial(material)
-    step1 = {}
-    step2 = {}
-    arrayZ = nil
-    -- STEP 1
-    -- create array with list of CH or C that contain specific material
-    step1 = createMaterialArray(material)
-    
-    -- STEP 2
-    -- calculate mass, quantity, percentage
-    step2 = calculateMaterial(step1)
-    
-    -- RETURN FULL ARRAY
-    --print_r(step2)
-    return step2
+  local step1 = createMaterialArray(material)
+  local step2 = calculateMaterial(step1)
+  return step2
 end
 
 ----------------
 -- HTML STUFF --
 ----------------
 function create_material_readout_screen_A()
-    html = html_css .. material_readout_top
-    for i = 1, 20 do if (i % 2 ~= 0) then html = html .. material_readout_cell(SCREENA[i]) end end
-    html = html .. material_readout_middle
-    for i = 1, 20 do if (i % 2 == 0) then html = html .. material_readout_cell(SCREENA[i]) end end
-    html = html .. material_readout_bottom
-    if not UseContainerHubs then
-        html = html .. material_readout_top
-        for i = 1, 20 do if (i % 2 ~= 0) then html = html .. material_readout_cell(SCREENB[i]) end end
-        html = html .. material_readout_middle
-        for i = 1, 20 do if (i % 2 == 0) then html = html .. material_readout_cell(SCREENB[i]) end end
-        html = html .. material_readout_bottom
-    end
-    return html
-end
-
-function create_material_readout_screen_B()
-    html = html_css .. material_readout_top
+  local html = html_css .. material_readout_top
+  for i = 1, 20 do if (i % 2 ~= 0) then html = html .. material_readout_cell(SCREENA[i]) end end
+  html = html .. material_readout_middle
+  for i = 1, 20 do if (i % 2 == 0) then html = html .. material_readout_cell(SCREENA[i]) end end
+  html = html .. material_readout_bottom
+  if not UseContainerHubs then
+    html = html .. material_readout_top
     for i = 1, 20 do if (i % 2 ~= 0) then html = html .. material_readout_cell(SCREENB[i]) end end
     html = html .. material_readout_middle
     for i = 1, 20 do if (i % 2 == 0) then html = html .. material_readout_cell(SCREENB[i]) end end
     html = html .. material_readout_bottom
-    return html
+  end
+  return html
+end
+
+function create_material_readout_screen_B()
+  local html = html_css .. material_readout_top
+  for i = 1, 20 do if (i % 2 ~= 0) then html = html .. material_readout_cell(SCREENB[i]) end end
+  html = html .. material_readout_middle
+  for i = 1, 20 do if (i % 2 == 0) then html = html .. material_readout_cell(SCREENB[i]) end end
+  html = html .. material_readout_bottom
+  return html
 end
 
 function clearSCREEN()
-    -- CLEAR SCREENS
-    SCREEN_A.clear()
-    if SCREEN_B ~= nil then SCREEN_B.clear() end
+  if SCREEN_A and SCREEN_A.clear then SCREEN_A.clear() end
+  if SCREEN_B and SCREEN_B.clear then SCREEN_B.clear() end
 end
 
+
 function reload()
-    clearSCREEN()
-    
-    -- SCREEN A
-    html = [[<div style="width:100vw"><div style="margin-top: 10px;padding: 0px;width: 100vw;display: inline-block;">]] .. create_material_readout_screen_A() .. [[</div></div>]]
-    SCREEN_A.setHTML(html)
-    
-    -- SCREEN B
-    if SCREEN_B ~= nil then
-        html = [[<div style="width:100vw"><div style="margin-top:10px;padding:0px;width:100vw;display:inline-block;">]] .. create_material_readout_screen_B() .. [[</div></div>]]
-        SCREEN_B.setHTML(html)
-    end
+  clearSCREEN()
+  local html = [[<div style="width:100vw"><div style="margin-top:10px;padding:0;width:100vw;display:inline-block;">]] .. create_material_readout_screen_A() .. [[</div></div>]]
+  SCREEN_A.setHTML(html)
+  if SCREEN_B ~= nil then
+    html = [[<div style="width:100vw"><div style="margin-top:10px;padding:0;width:100vw;display:inline-block;">]] .. create_material_readout_screen_B() .. [[</div></div>]]
+    SCREEN_B.setHTML(html)
+  end
 end
 
 function warmup()
-    system.print("WARMUP")
-    
-    -- SCREEN A
-    html = css_loading .. [[<div class="wrapper"><div class="valign"><div>LOADING</div></div></div>]]
-    SCREEN_A.setHTML(html)
-    
-    -- LOAD SCREEN B LOADING
-    if SCREEN_B ~= nil then SCREEN_B.setHTML(html) end
+  system.print("WARMUP")
+  local html = css_loading .. [[<div class="wrapper"><div class="valign"><div>LOADING</div></div></div>]]
+  SCREEN_A.setHTML(html)
+  if SCREEN_B ~= nil then SCREEN_B.setHTML(html) end
 end
 
 function door()
-    local playerId = unit.getMasterPlayerId()
-    local playerName = system.getPlayerName(playerId)
-    local t = DoorUsers -- username array like {'user1', 'user2', 'CaseSensitive'}
-    local function has_value(tab, val)
-        for index, value in ipairs(tab) do
-            if value == val then
-                return true
-            end
-        end
-        return false
-    end
-    --system.print("Hello " .. playerName .. " : " .. playerId .. "!")
-    if has_value(t, playerName) then
-        if DOOR1 ~= nil then DOOR1.activate() end
-        if DOOR2 ~= nil then DOOR2.activate() end
-    --someSCREEN.setCenteredText("WELCOME" .. playerName)
-    else
-        system.print('PERMISSION DENIED')
-    end
+  local playerId = unit.getMasterPlayerId()
+  local playerName = system.getPlayerName(playerId)
+  local t = DoorUsers
+  local function has_value(tab, val)
+    for _, v in ipairs(tab) do if v == val then return true end end
+    return false
+  end
+  if has_value(t, playerName) then
+    if DOOR1 ~= nil then DOOR1.activate() end
+    if DOOR2 ~= nil then DOOR2.activate() end
+  else
+    system.print('PERMISSION DENIED')
+  end
 end
 
 -- STARTUP FACTORY
@@ -788,3 +568,7 @@ goDB()
 
 if not showHudWidget then unit.hideWidget() end
 if UseDoors then door() end
+
+
+
+
