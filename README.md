@@ -1,4 +1,4 @@
-<p># <strong>DU-CONTAINER_MONITOR v2.2</strong> #</p>
+<p># <strong>DU-CONTAINER_MONITOR v2.3</strong> #</p>
 <p><img src="https://github.com/Virtualburn/DU-Container-Monitor/raw/d6145a48c606952b5d7f70edbf7e5ded9dbf6e9d/HUB_MONITOR.png" width="742" height="371" /></p>
 <p><strong>:: OVERVIEW<br /></strong><br />Dual Universe container monitor script for Ores and Pures using various sized containers (from Basic to Advanced Optimized) using singulat container or multiple via hub with <strong>no need to link</strong> as it uses naming system via Core.</p>
 <p>This HUD is designed to be used on 2 x Transparent L Screens</p>
@@ -25,7 +25,23 @@
 <li>Link a relay to the board and the screens and detector zone to the relay to activate when you are present.</li>
 </ul>
 <p><br /><strong>:: LABELLING INSTRUCTIONS (example)<br /></strong><br /> CH stands for ContainerHub<br /> C stands for Container<br />2 for quantity of containers<br /> L for size of the container<br /> ACANTHITE for material type<br /> <br />CH_2L_ACANTHITE</p>
-<p>::&nbsp;EXTRA MATERIALS<br /><br />"OXYGEN", "HYDROGEN", "WARPCELL"<br /> <br />::&nbsp;<strong>DOORS<br /></strong><br /> Link them to the board. Name the slots DOOR1 and DOOR2 (optional).<br /> Activate at parameters (UseDoors)<br />Edit the caracter names that will trigger the doors (final function at System/start)<br /> <br /> <strong>CHANGE LOG: DU-CONTAINER-MONITOR</strong></p>
+<p>::&nbsp;EXTRA MATERIALS<br /><br />"OXYGEN", "HYDROGEN", "WARPCELL"<br /> <br />::&nbsp;<strong>DOORS<br /></strong><br /> Link them to the board. Name the slots DOOR1 and DOOR2 (optional).<br /> Activate at parameters (UseDoors)<br />Edit the caracter names that will trigger the doors (final function at System/start)</p>
+<p>:: <strong>Uncheck 'UseContainerHubs'</strong> single screen monitor</p>
+<p><img src="https://github.com/Virtualburn/DU-Container-Monitor/raw/492826f0455d81b2b29a531f3dcd91fc9220adfa/HUB_MONITOR_1_SCREEN.png" width="700" height="579" /></p>
+<p><strong>CHANGE LOG: DU-CONTAINER-MONITOR</strong></p>
+<p data-start="2512" data-end="2538"><strong data-start="2512" data-end="2538">v2.3 &mdash; 2025-09-08</strong></p>
+<p data-start="2512" data-end="2538"><strong data-start="2512" data-end="2538">Add Exotic tier</strong></p>
+<ul>
+<li data-start="2541" data-end="2602">-- Added <code data-start="2547" data-end="2550">e</code> tier suffix (Exotic), mapped to <strong data-start="2583" data-end="2588">4</strong> tier steps.</li>
+<li data-start="2605" data-end="2649">-- Updated parsers to accept <code data-start="2631" data-end="2639">[UARE]</code> suffix.</li>
+<li data-start="2652" data-end="2729">-- Simplified empty-mass lookup by base size to auto-cover all tiers.</li>
+</ul>
+<p><strong>Naming examples (now including Exotic)</strong></p>
+<ul>
+<li><strong>C_XSe_COAL</strong> &rarr; XS Exotic container with Coal</li>
+<li><strong>CH_Le_BAUXITE</strong> &rarr; L Exotic on a hub</li>
+<li><strong>CH_2XXLe_HEMATITE</strong> &rarr; two XXL Exotic on a hub</li>
+</ul>
 <p data-start="4637" data-end="4658"><strong data-start="4637" data-end="4658">v2.2 &mdash; 2025-09-07</strong></p>
 <ul>
 <li data-start="4661" data-end="4770">-- Added <strong data-start="4667" data-end="4704">capacity talents (0&ndash;5, +10% each)</strong> with per-size <strong data-start="4719" data-end="4738">base capacities</strong>; removed per-tier hardcoding.</li>
