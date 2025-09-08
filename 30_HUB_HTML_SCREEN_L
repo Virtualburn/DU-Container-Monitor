@@ -1,0 +1,75 @@
+ <!--[ SIMPLE 30 x HUB STORAGE SCREEN L : @Virtualburn ~ ODY ]-->
+ <div style="width=100vw"> <div style="margin-top: 9vw;padding: 0px;width: 100vw;display: inline-block;"> <style> 
+.table {background-color:none; height:100vh; margin:auto; padding:0; position:relative; width:98vw} 
+.column_left {background-color:#; position:absolute; left:3vw; height:100%; width:18vw} 
+.column_middle1 {background-color:#; position:absolute; left:22vw; height:100%; width:18vw} 
+.column_middle2 {background-color:#; position:absolute; left:40.5vw; height:100%; width:18vw}
+.column_middle3 {background-color:#; position:absolute; left:59.5vw; height:100%; width:18vw}
+.column_right {background-color:#; position:absolute; right:2vw; height:100%; width:18vw} 
+.row {background-color:none; height:15.7vh; border:0px white solid; padding-left:0; width:99%; text-align:center; vertical-align:top} 
+.name {background-color:none; padding-left:0px; font-size: 2vh; display:inline-block; width:100%} 
+</style> 
+<div class="table"> 
+	<div class="column_left"> 
+        <div class="row"><div class="name"># EMPTY #</div></div>
+        <div class="row"><div class="name"># EMPTY #</div></div>
+        <div class="row"><div class="name"># EMPTY #</div></div> 
+        <div class="row"><div class="name"># EMPTY #</div></div>
+        <div class="row"><div class="name"># EMPTY #</div></div>
+        <div class="row"><div class="name"># EMPTY #</div></div>
+        <div class="row"><div class="name"># EMPTY #</div></div>
+        <div class="row"><div class="name"># EMPTY #</div></div>
+        <div class="row"><div class="name"># EMPTY #</div></div>
+        <div class="row"><div class="name"># EMPTY #</div></div> 
+        <div class="row"><div class="name"># EMPTY #</div></div>
+    </div>
+<div class="column_middle1">
+        <div class="row"><div class="name"># EMPTY #</div></div>
+        <div class="row"><div class="name"># EMPTY #</div></div>
+        <div class="row"><div class="name"># EMPTY #</div></div> 
+        <div class="row"><div class="name"># EMPTY #</div></div>
+        <div class="row"><div class="name"># EMPTY #</div></div>
+        <div class="row"><div class="name"># EMPTY #</div></div>
+        <div class="row"><div class="name"># EMPTY #</div></div>
+        <div class="row"><div class="name"># EMPTY #</div></div>
+        <div class="row"><div class="name"># EMPTY #</div></div>
+        <div class="row"><div class="name"># EMPTY #</div></div>
+    </div>
+        <div class="column_middle2">
+        <div class="row"><div class="name"># EMPTY #</div></div>
+        <div class="row"><div class="name"># EMPTY #</div></div>
+        <div class="row"><div class="name"># EMPTY #</div></div> 
+        <div class="row"><div class="name"># EMPTY #</div></div>
+        <div class="row"><div class="name"># EMPTY #</div></div>
+        <div class="row"><div class="name"># EMPTY #</div></div>
+        <div class="row"><div class="name"># EMPTY #</div></div>
+        <div class="row"><div class="name"># EMPTY #</div></div>
+        <div class="row"><div class="name"># EMPTY #</div></div>
+        <div class="row"><div class="name"># EMPTY #</div></div>
+    </div>
+        <div class="column_middle3">
+        <div class="row"><div class="name"># EMPTY #</div></div>
+        <div class="row"><div class="name"># EMPTY #</div></div>
+        <div class="row"><div class="name"># EMPTY #</div></div> 
+        <div class="row"><div class="name"># EMPTY #</div></div>
+        <div class="row"><div class="name"># EMPTY #</div></div>
+        <div class="row"><div class="name"># EMPTY #</div></div>
+        <div class="row"><div class="name"># EMPTY #</div></div>
+        <div class="row"><div class="name"># EMPTY #</div></div>
+        <div class="row"><div class="name"># EMPTY #</div></div>
+        <div class="row"><div class="name"># EMPTY #</div></div>
+    </div>
+    <div class="column_right">
+        <div class="row"><div class="name"># EMPTY #</div></div>
+        <div class="row"><div class="name"># EMPTY #</div></div>
+        <div class="row"><div class="name"># EMPTY #</div></div> 
+        <div class="row"><div class="name"># EMPTY #</div></div>
+        <div class="row"><div class="name"># EMPTY #</div></div>
+        <div class="row"><div class="name"># EMPTY #</div></div>
+        <div class="row"><div class="name"># EMPTY #</div></div>
+        <div class="row"><div class="name"># EMPTY #</div></div>
+        <div class="row"><div class="name"># EMPTY #</div></div>
+        <div class="row"><div class="name"># EMPTY #</div></div>
+    </div>
+</div>
+</div></div>
