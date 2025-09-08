@@ -1,11 +1,29 @@
 <p># <strong>DU-CONTAINER_MONITOR v2.2</strong> #</p>
-<p><img width="742" height="371" src="https://github.com/Virtualburn/DU-Container-Monitor/raw/d6145a48c606952b5d7f70edbf7e5ded9dbf6e9d/HUB_MONITOR.png" /></img></p>
+<p><img src="https://github.com/Virtualburn/DU-Container-Monitor/raw/d6145a48c606952b5d7f70edbf7e5ded9dbf6e9d/HUB_MONITOR.png" width="742" height="371" /></p>
 <p><strong>:: OVERVIEW<br /></strong><br />Dual Universe container monitor script for Ores and Pures using various sized containers (from Basic to Advanced Optimized) using singulat container or multiple via hub with <strong>no need to link</strong> as it uses naming system via Core.</p>
 <p>This HUD is designed to be used on 2 x Transparent L Screens</p>
-<p>This code is destined to Dual Universe game.<br /> This is a Container monitor for pure and ore materials. It can be used to monitor container percentages and it readouts. It was design to have a Container Hub element side each item.<br /> <br /> This HUD was designed for a Large Transparent Screen(or two). Each screen can gather 20 materials. It uses a Zone detector to turn up every board for optimal CPU usage.<br /> <br /> ::&nbsp;<strong>SETUP HUD<br /></strong><br /> Slot1: CORE<br /> Slot2: SCREEN_A<br /> Slot3: SCREEN_B (optional)<br />Slot4: DOOR1 (optional)<br />Slot5: DOOR2 (optional)<br />Slot6: Databank (optional)</p>
-<p><img width="229" height="337" src="https://github.com/Virtualburn/DU-Container-Monitor/raw/d6145a48c606952b5d7f70edbf7e5ded9dbf6e9d/SLOTS.png" /></img></p>
-<p><strong>:: INSTRUCTIONS<br /></strong> <br /> 1. Place Main board<br /> 2. Place a Transparent Screen(s) L or similar<br /> 3. Link CORE<br /> 4. Link SCREEN(S) and Databank (Optional)<br /> 5. Copy RAW code from MAIN_SCRIPT file and paste under 'advanced &gt; Paste LUA script from clipboard'<br />on the Programming Board.<br /> NOTE: When you have pasted the code it will rename the Slots automatically - if you are using a second screen rename the last slot to SCREEN_B.<br />6. Check parameters 'Advanced &gt; Edit Lua parameters'</p>
-<p><img width="512" height="532" src="https://github.com/Virtualburn/DU-Container-Monitor/raw/d6145a48c606952b5d7f70edbf7e5ded9dbf6e9d/USER_VARS.png" /></img><br /><br /> 8. Label Conatienrs and/or hubs - see below<br /><br /> <strong>:: EXTRA</strong><br /><br /> 10. Link a relay to the board and the screens and detector zone to the relay to activate when you are present.</p>
+<p>This code is destined to Dual Universe game.<br /> This is a Container monitor for pure and ore materials. It can be used to monitor container percentages and it readouts. It was design to have a Container Hub element side each item.<br /> <br /> This HUD was designed for a Large Transparent Screen(or two). Each screen can gather 20 materials. It uses a Zone detector to turn up every board for optimal CPU usage.<br /> <br /><strong>:: INSTRUCTIONS</strong></p>
+<ul>
+<li data-start="702" data-end="744">Connect a <strong data-start="712" data-end="720">Core</strong> to the PB (any core).</li>
+<li data-start="747" data-end="809">Connect <strong data-start="755" data-end="767">SCREEN_A</strong> (required) and optionally <strong data-start="794" data-end="806">SCREEN_B</strong>.</li>
+<li data-start="812" data-end="889">(Optional) Connect a <strong data-start="833" data-end="845">Databank</strong> (for storing user vars between sessions).</li>
+<li data-start="892" data-end="963">(Optional) Connect <strong data-start="911" data-end="920">DOOR1</strong>/<strong data-start="921" data-end="930">DOOR2</strong> if you want the auto-door bit.</li>
+<li data-start="966" data-end="1045">Name the hub/containers as before (e.g., <code data-start="1007" data-end="1023">CH_XXL_BAUXITE</code>, <code data-start="1025" data-end="1037">C_XLu_COAL</code>, etc.).<br /><br /></li>
+</ul>
+<p><img src="https://github.com/Virtualburn/DU-Container-Monitor/raw/d6145a48c606952b5d7f70edbf7e5ded9dbf6e9d/SLOTS.png" width="229" height="337" /></p>
+<p><strong>NOTE</strong>: When you have pasted the code it will rename the Slots automatically - if you are using a second screen rename the last slot to SCREEN_B.</p>
+<ul>
+<li>Check parameters 'Advanced &gt; Edit Lua parameters'</li>
+</ul>
+<p>&nbsp;</p>
+<p><img src="https://github.com/Virtualburn/DU-Container-Monitor/raw/d6145a48c606952b5d7f70edbf7e5ded9dbf6e9d/USER_VARS.png" width="512" height="532" /></p>
+<ul>
+<li>Label Containers and/or hubs - see below</li>
+</ul>
+<p><strong>:: EXTRA</strong></p>
+<ul>
+<li>Link a relay to the board and the screens and detector zone to the relay to activate when you are present.</li>
+</ul>
 <p><br /><strong>:: LABELLING INSTRUCTIONS (example)<br /></strong><br /> CH stands for ContainerHub<br /> C stands for Container<br />2 for quantity of containers<br /> L for size of the container<br /> ACANTHITE for material type<br /> <br />CH_2L_ACANTHITE</p>
 <p>::&nbsp;EXTRA MATERIALS<br /><br />"OXYGEN", "HYDROGEN", "WARPCELL"<br /> <br />::&nbsp;<strong>DOORS<br /></strong><br /> Link them to the board. Name the slots DOOR1 and DOOR2 (optional).<br /> Activate at parameters (UseDoors)<br />Edit the caracter names that will trigger the doors (final function at System/start)<br /> <br /> <strong>CHANGE LOG: DU-CONTAINER-MONITOR</strong></p>
 <p data-start="4637" data-end="4658"><strong data-start="4637" data-end="4658">v2.2 &mdash; 2025-09-07</strong></p>
@@ -44,4 +62,4 @@
 <p><strong>Bonus Screen</strong></p>
 <p>30_HUB_SCREEN_L_HTML</p>
 <p>Simple HTML paste direct to Screen L and will host 30 x Container hubs.</p>
-<p><img width="700" height="631" src="https://github.com/Virtualburn/DU-Container-Monitor/raw/fa5a4da293662ff4f9bdd7aa0594045cf16a0610/30_HUB_SCREEN.png" /></img><br />This is a HTML only board.</p>
+<p><img src="https://github.com/Virtualburn/DU-Container-Monitor/raw/fa5a4da293662ff4f9bdd7aa0594045cf16a0610/30_HUB_SCREEN.png" width="700" height="631" /><br />This is a HTML only board.</p>
